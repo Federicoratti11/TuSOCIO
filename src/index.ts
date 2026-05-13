@@ -7,7 +7,7 @@ import type { AppState } from "./types";
 // En Render: agregar la env var VITE_BACKEND_URL con la URL de tu servicio.
 // Localmente: crear un archivo .env en la raíz del proyecto con VITE_BACKEND_URL=https://...
 const BACKEND_URL = (import.meta as any).env?.VITE_BACKEND_URL as string
-  ?? "https://d0e4187dbf87e592-181-46-139-184.serveousercontent.com";
+  ?? "https://tusocio-production.up.railway.app";
 const TOAST_KEY   = "muff_promo_toast_shown";
 const CACHE_KEY   = "muff_settings_cache";
 const CACHE_TTL   = 5 * 60 * 1000; // 5 minutos en ms
