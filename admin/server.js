@@ -116,6 +116,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 // como /dist/muff-app.iife.js por el middleware de arriba
 
 app.use((req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "frame-ancestors 'self' https://*.tiendanube.com https://*.nuvemshop.com.br;"
+  );
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
