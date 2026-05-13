@@ -2,7 +2,8 @@ const axios = require('axios');
 
 const ACCESS_TOKEN = '2578651ff63661be9fd03507301ae7839ac9bdd1';
 const STORE_ID = '7682598';
-const SCRIPT_URL = 'https://d0e4187dbf87e592-181-46-139-184.serveousercontent.com/dist/muff-app.iife.js';
+const SCRIPT_URL = 'https://tusocio-production.up.railway.app/dist/muff-app.iife.js';
+
 
 axios.post(`https://api.tiendanube.com/v1/${STORE_ID}/scripts`, {
   src: SCRIPT_URL,

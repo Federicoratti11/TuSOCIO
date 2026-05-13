@@ -5,8 +5,26 @@
   "main": "index.js",
   "scripts": {
     "build": "vite build",
+    "start": "node admin/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "dependencies": {
+    "@tiendanube/nube-sdk-jsx": "^0.16.1",
+    "@tiendanube/nube-sdk-ui": "^0.17.1",
+    "esbuild": "^0.28.0",
+    "typescript": "^6.0.3",
+    "axios": "^1.16.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "localtunnel": "^2.0.2",
+    "sql.js": "^1.14.1"
+  },
+  "devDependencies": {
+    "vite": "^6.4.2",
+    "vite-plugin-top-level-await": "^1.6.0"
+  }
   "keywords": [],
   "author": "",
   "license": "ISC",

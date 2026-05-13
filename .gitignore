@@ -17,3 +17,4 @@ pinggy.log
 # OS
 .DS_Store
 Thumbs.db
+!admin/public/dist/
