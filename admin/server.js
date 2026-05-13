@@ -112,22 +112,22 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
-// ✅ El bundle JS vive en admin/public/dist/ y se sirve automáticamente
-// como /dist/muff-app.iife.js por el middleware de arriba
-
 // ── Seguridad ────────────────────────────────────────────────────────
 app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
     "frame-ancestors 'self' https://*.tiendanube.com https://*.nuvemshop.com.br; " +
     "frame-src 'self' https://*.tiendanube.com https://*.nuvemshop.com.br https://tusocio-production.up.railway.app; " +
-    "script-src 'self' https://unpkg.com https://*.tiendanube.com https://*.nuvemshop.com.br; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://*.tiendanube.com https://*.nuvemshop.com.br; " +
     "connect-src 'self' https://*.tiendanube.com https://*.nuvemshop.com.br https://tusocio-production.up.railway.app;"
   );
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
+
+app.use(express.static(path.join(__dirname, 'public')));
+// ✅ El bundle JS vive en admin/public/dist/ y se sirve automáticamente
+// como /dist/muff-app.iife.js por el middleware de arriba
 
 // ─── API: Puente NubeSDK → Backend ───────────────────────────────────────────
 
