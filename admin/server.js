@@ -182,8 +182,10 @@ app.post('/api/settings', async (req, res) => {
         }
       );
       console.log(`[Settings] Promoción registrada/actualizada en Tienda Nube para ${store_id}`);
+      lastApiError = null;
     } catch (promoErr) {
-      console.error(`[Settings] Error registrando la promoción en Tienda Nube:`, promoErr.response?.data || promoErr.message);
+      lastApiError = promoErr.response?.data || promoErr.message;
+      console.error(`[Settings] Error registrando la promoción en Tienda Nube:`, lastApiError);
     }
   }
 
@@ -271,8 +273,10 @@ app.get('/auth/callback', async (req, res) => {
         }
       );
       console.log(`[OAuth] Callback de Discount API registrado en tienda ${storeId}`);
+      lastApiError = null;
     } catch (cbError) {
-      console.error('[OAuth] Error registrando callback de descuentos:', cbError.response?.data ?? cbError.message);
+      lastApiError = cbError.response?.data || cbError.message;
+      console.error('[OAuth] Error registrando callback de descuentos:', lastApiError);
     }
 
 
@@ -287,9 +291,10 @@ app.get('/auth/callback', async (req, res) => {
   }
 });
 
-// ─── Discount API Webhook ─────────────────────────────────────────────────────
+// ─── Debug API & Webhook ──────────────────────────────────────────────────────
 
 let lastWebhookPayload = null;
+let lastApiError = null;
 
 /**
  * GET /api/last-webhook
@@ -297,6 +302,14 @@ let lastWebhookPayload = null;
  */
 app.get('/api/last-webhook', (req, res) => {
   res.json({ payload: lastWebhookPayload });
+});
+
+/**
+ * GET /api/last-error
+ * Endpoint temporal para ver por qué falla la API de Tienda Nube.
+ */
+app.get('/api/last-error', (req, res) => {
+  res.json({ error: lastApiError });
 });
 
 /**
