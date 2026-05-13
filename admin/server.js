@@ -62,7 +62,7 @@ function saveDB() {
 
 function getSettings(storeId) {
   const stmt = db.prepare(
-    'SELECT promo_active, promo_type, promo_percentage FROM store_settings WHERE store_id = ?'
+    'SELECT promo_active, promo_type, promo_percentage, access_token FROM store_settings WHERE store_id = ?'
   );
   stmt.bind([storeId]);
   if (stmt.step()) {
@@ -72,11 +72,12 @@ function getSettings(storeId) {
       promoActive:     Boolean(row.promo_active),
       promoType:       row.promo_type,
       promoPercentage: row.promo_percentage,
+      accessToken:     row.access_token,
     };
   }
   stmt.free();
   // Devolver valores por defecto si la tienda no existe aún
-  return { promoActive: false, promoType: '2do_al_50', promoPercentage: 0.5 };
+  return { promoActive: false, promoType: '2do_al_50', promoPercentage: 0.5, accessToken: null };
 }
 
 function upsertSettings(storeId, promoActive, promoType, promoPercentage) {
@@ -147,7 +148,7 @@ app.get('/api/settings', (req, res) => {
  * POST /api/settings
  * El dashboard actualiza la configuración de la promo.
  */
-app.post('/api/settings', (req, res) => {
+app.post('/api/settings', async (req, res) => {
   const { store_id, promoActive, promoPercentage } = req.body;
   if (!store_id) return res.status(400).json({ error: 'store_id es requerido' });
 
@@ -161,7 +162,32 @@ app.post('/api/settings', (req, res) => {
 
   const updated = getSettings(String(store_id));
   console.log(`[Settings] POST store_id=${store_id} →`, updated);
-  res.json({ success: true, settings: updated });
+  
+  // ✅ Registrar / Actualizar la Promoción en Tienda Nube para forzar el Webhook
+  if (updated.accessToken && promoActive) {
+    try {
+      await axios.post(
+        `https://api.tiendanube.com/v1/${store_id}/promotions`,
+        {
+          name: "2do al 50% (MuffApp)",
+          type: "cross_item", // Tienda Nube discount api generic type
+          starts_at: new Date().toISOString()
+        },
+        {
+          headers: {
+            'Authentication': `bearer ${updated.accessToken}`,
+            'User-Agent':     'MuffApp (contacto@muff.com.ar)',
+            'Content-Type':   'application/json',
+          },
+        }
+      );
+      console.log(`[Settings] Promoción registrada/actualizada en Tienda Nube para ${store_id}`);
+    } catch (promoErr) {
+      console.error(`[Settings] Error registrando la promoción en Tienda Nube:`, promoErr.response?.data || promoErr.message);
+    }
+  }
+
+  res.json({ success: true, settings: { ...updated, accessToken: undefined } });
 });
 
 /**
