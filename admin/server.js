@@ -169,7 +169,7 @@ app.get('/api/me', (req, res) => {
   if (!storeId) {
     return res.status(401).json({ error: 'No autenticado. Instalá la app primero.' });
   }
-  res.json({ store_id: storeId });
+  res.json({ store_id: storeId, client_id: process.env.CLIENT_ID });
 });
 
 // ─── OAuth: Flujo de Instalación ─────────────────────────────────────────────

@@ -293,10 +293,14 @@
 
   </div><!-- /page-wrapper -->
 
-  <script>
+  <script type="module">
+    import nexo from 'https://esm.sh/@tiendanube/nexo@1.3.1';
+    import { connect, iAmReady } from 'https://esm.sh/@tiendanube/nexo@1.3.1/helpers';
+
     // ── Estado ────────────────────────────────────────────────────────────
     let storeId = '';
     let currentSettings = { promoActive: false, promoPercentage: 0.5 };
+    let nexoInstance = null;
 
     // ── Helpers ───────────────────────────────────────────────────────────
     function showAlert(message, type) {
@@ -315,7 +319,7 @@
     // ── Carga inicial: obtener store_id del servidor, luego settings ──────
     async function loadSettings() {
       try {
-        // ✅ Obtener store_id desde el servidor (no desde cookie httpOnly)
+        // ✅ Obtener store_id y client_id desde el servidor
         const meRes = await fetch('/api/me');
         if (!meRes.ok) {
           document.getElementById('app-status-badge').className = 'status-badge inactive';
@@ -326,6 +330,17 @@
         }
         const me = await meRes.json();
         storeId = me.store_id;
+        const clientId = me.client_id;
+
+        // Inicializar Nexo para comunicarse con el iframe de Tienda Nube
+        if (clientId) {
+          try {
+            nexoInstance = nexo.create({ clientId: clientId, log: false });
+            await connect(nexoInstance);
+          } catch (nexoErr) {
+            console.warn('[Nexo] Error al conectar o ejecutando fuera de Tienda Nube:', nexoErr);
+          }
+        }
 
         // Actualizar badge con store_id
         document.getElementById('app-status-badge').innerHTML =
@@ -342,6 +357,11 @@
         document.getElementById('discount-range').value = pct;
         document.getElementById('discount-display').textContent = `${pct}%`;
         updatePreview();
+
+        // Avisarle a Tiendanube que el dashboard ya cargó para ocultar su loader
+        if (nexoInstance) {
+          iAmReady(nexoInstance);
+        }
       } catch (err) {
         console.error('[Dashboard] Error cargando settings:', err);
         showAlert('❌ Error al cargar la configuración. Revisá la conexión.', 'error');
@@ -349,7 +369,7 @@
     }
 
     // ── Guardar settings ──────────────────────────────────────────────────
-    async function saveSettings() {
+    window.saveSettings = async function() {
       const btn        = document.getElementById('save-btn');
       const promoActive = document.getElementById('promo-toggle').checked;
       const rangeVal   = document.getElementById('discount-range').value;
@@ -380,7 +400,7 @@
         btn.disabled    = false;
         btn.textContent = '💾 Guardar Configuración';
       }
-    }
+    };
 
     // ── Eventos ───────────────────────────────────────────────────────────
     document.getElementById('discount-range').addEventListener('input', (e) => {
