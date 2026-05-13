@@ -227,6 +227,27 @@ app.get('/auth/callback', async (req, res) => {
       console.error('[OAuth] Error inyectando script:', injectError.response?.data ?? injectError.message);
     }
 
+    // ✅ Registrar Callback para la Discount API
+    try {
+      const callbackUrl = `${APP_URL}/api/discount-callback`;
+      // Registramos la URL para recibir eventos del carrito (Discount API)
+      await axios.put(
+        `https://api.tiendanube.com/v1/${storeId}/discounts/callbacks`,
+        { callback_url: callbackUrl },
+        {
+          headers: {
+            'Authentication': `bearer ${access_token}`,
+            'User-Agent':     'MuffApp (contacto@muff.com.ar)',
+            'Content-Type':   'application/json',
+          },
+        }
+      );
+      console.log(`[OAuth] Callback de Discount API registrado en tienda ${storeId}`);
+    } catch (cbError) {
+      console.error('[OAuth] Error registrando callback de descuentos:', cbError.response?.data ?? cbError.message);
+    }
+
+
     // Cookie httpOnly para el dashboard (SameSite=None y Secure requeridos para iframes)
     res.cookie('access_token', access_token, { httpOnly: true, sameSite: 'none', secure: true });
     res.cookie('store_id',     storeId,       { httpOnly: true, sameSite: 'none', secure: true });
@@ -236,6 +257,22 @@ app.get('/auth/callback', async (req, res) => {
     console.error('[OAuth] Error en instalación:', error.response?.data ?? error.message);
     res.status(500).send('Error durante la instalación. Revisá la terminal del servidor.');
   }
+});
+
+// ─── Discount API Webhook ─────────────────────────────────────────────────────
+
+/**
+ * POST /api/discount-callback
+ * Endpoint llamado por Tienda Nube cada vez que se actualiza el carrito.
+ */
+app.post('/api/discount-callback', (req, res) => {
+  console.log(`\n\n[Discount API] NUEVO EVENTO RECIBIDO`);
+  console.log(`[Discount API] Headers:`, JSON.stringify(req.headers, null, 2));
+  console.log(`[Discount API] Body:`, JSON.stringify(req.body, null, 2));
+  
+  // Por el momento, respondemos 200 OK vacío o sin descuentos para que el checkout no falle
+  // mientras descubrimos el formato exacto de Tienda Nube para aplicar la lógica del "2do al 50%"
+  res.status(200).json([]);
 });
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
