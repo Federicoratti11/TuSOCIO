@@ -112,7 +112,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/dist', express.static(path.join(__dirname, '../dist')));
+// ✅ El bundle JS vive en admin/public/dist/ y se sirve automáticamente
+// como /dist/muff-app.iife.js por el middleware de arriba
 
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
