@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "vite build",
+    "build": "vite build && esbuild src/dashboard.ts --bundle --outfile=admin/public/dist/dashboard.js --minify",
     "start": "node admin/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -123,6 +123,7 @@
     }
     input[type="range"] {
       -webkit-appearance: none;
+      appearance: none;
       width: 100%;
       height: 6px;
       border-radius: 3px;
@@ -132,6 +133,7 @@
     }
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
+      appearance: none;
       width: 20px; height: 20px;
       border-radius: 50%;
       background: #00b050;
@@ -293,118 +295,6 @@
 
   </div><!-- /page-wrapper -->
 
-  <script type="module">
-    import { create as createNexo, connect, iAmReady } from 'https://esm.sh/@tiendanube/nexo@1.3.1';
-
-    // ── Estado ────────────────────────────────────────────────────────────
-    let storeId = '';
-    let currentSettings = { promoActive: false, promoPercentage: 0.5 };
-    let nexoInstance = null;
-
-    // ── Helpers ───────────────────────────────────────────────────────────
-    function showAlert(message, type) {
-      const el = document.getElementById('save-alert');
-      el.textContent  = message;
-      el.className    = `alert ${type} show`;
-      setTimeout(() => { el.className = 'alert'; }, 4000);
-    }
-
-    function updatePreview() {
-      const pct     = document.getElementById('discount-range').value;
-      const subtitle = document.getElementById('preview-subtitle');
-      subtitle.textContent = `Agregá 2 artículos y ahorrá ${pct}% en el más barato.`;
-    }
-
-    // ── Carga inicial: obtener store_id del servidor, luego settings ──────
-    async function loadSettings() {
-      // 1. Inicializar Nexo INMEDIATAMENTE para evitar el timeout de Tienda Nube
-      try {
-        const clientId = '31472'; // Client ID fijo o pasarlo por env
-        nexoInstance = createNexo({ clientId: clientId, log: false });
-        connect(nexoInstance); // Sin await para no bloquear
-        iAmReady(nexoInstance); // Le avisa a Tienda Nube que ya estamos vivos
-      } catch (nexoErr) {
-        console.warn('[Nexo] Error al conectar o ejecutando fuera de Tienda Nube:', nexoErr);
-      }
-
-      try {
-        // ✅ Obtener store_id desde las cookies httpOnly (si el navegador lo permite)
-        const meRes = await fetch('/api/me');
-        if (!meRes.ok) {
-          document.getElementById('app-status-badge').className = 'status-badge inactive';
-          document.getElementById('app-status-badge').innerHTML =
-            '<span class="status-dot"></span>ERROR DE SESIÓN';
-          showAlert('El navegador bloqueó las cookies o la sesión expiró. Abrí la app en una nueva pestaña.', 'error');
-          return;
-        }
-        
-        const me = await meRes.json();
-        storeId = me.store_id;
-
-        // Actualizar badge con store_id
-        document.getElementById('app-status-badge').innerHTML =
-          `<span class="status-dot"></span>CONECTADA · Tienda ${storeId}`;
-
-        // Cargar configuración de la tienda
-        const res = await fetch(`/api/settings?store_id=${storeId}`);
-        if (!res.ok) throw new Error('Error al cargar configuración');
-        const data = await res.json();
-        currentSettings = data;
-
-        document.getElementById('promo-toggle').checked = data.promoActive;
-        const pct = Math.round((data.promoPercentage ?? 0.5) * 100);
-        document.getElementById('discount-range').value = pct;
-        document.getElementById('discount-display').textContent = `${pct}%`;
-        updatePreview();
-
-      } catch (err) {
-        console.error('[Dashboard] Error cargando settings:', err);
-        showAlert('❌ Error al cargar la configuración. Revisá la conexión.', 'error');
-      }
-    }
-
-    // ── Guardar settings ──────────────────────────────────────────────────
-    window.saveSettings = async function() {
-      const btn        = document.getElementById('save-btn');
-      const promoActive = document.getElementById('promo-toggle').checked;
-      const rangeVal   = document.getElementById('discount-range').value;
-      const promoPercentage = parseInt(rangeVal, 10) / 100;
-
-      btn.disabled    = true;
-      btn.textContent = '⏳ Guardando...';
-
-      try {
-        const res = await fetch('/api/settings', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ store_id: storeId, promoActive, promoPercentage }),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        currentSettings = data.settings;
-        showAlert('✅ Configuración guardada correctamente.', 'success');
-
-        // Actualizar badge
-        const badge = document.getElementById('app-status-badge');
-        badge.className = `status-badge ${promoActive ? 'active' : 'inactive'}`;
-        badge.innerHTML = `<span class="status-dot"></span>${promoActive ? 'PROMO ACTIVA' : 'PROMO INACTIVA'}`;
-      } catch (err) {
-        console.error('[Dashboard] Error guardando settings:', err);
-        showAlert('❌ Error al guardar. Revisá la conexión.', 'error');
-      } finally {
-        btn.disabled    = false;
-        btn.textContent = '💾 Guardar Configuración';
-      }
-    };
-
-    // ── Eventos ───────────────────────────────────────────────────────────
-    document.getElementById('discount-range').addEventListener('input', (e) => {
-      document.getElementById('discount-display').textContent = `${e.target.value}%`;
-      updatePreview();
-    });
-
-    // ── Inicializar ───────────────────────────────────────────────────────
-    loadSettings();
-  </script>
+  <script src="/dist/dashboard.js"></script>
 </body>
 </html>
