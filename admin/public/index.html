@@ -294,8 +294,7 @@
   </div><!-- /page-wrapper -->
 
   <script type="module">
-    import nexo from 'https://esm.sh/@tiendanube/nexo@1.3.1';
-    import { connect, iAmReady } from 'https://esm.sh/@tiendanube/nexo@1.3.1/helpers';
+    import nexo, { connect, iAmReady } from 'https://esm.sh/@tiendanube/nexo@1.3.1';
 
     // ── Estado ────────────────────────────────────────────────────────────
     let storeId = '';
@@ -330,7 +329,7 @@
         }
         const me = await meRes.json();
         storeId = me.store_id;
-        const clientId = me.client_id;
+        const clientId = me.client_id || '31472'; // Fallback a tu App ID oficial
 
         // Inicializar Nexo para comunicarse con el iframe de Tienda Nube
         if (clientId) {
