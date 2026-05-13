@@ -29,7 +29,7 @@ async function loadSettings() {
     const clientId = '31472'; // Client ID fijo o pasarlo por env
     // Usamos el export default de nexo que tiene create()
     nexoInstance = nexo.create({ clientId: clientId, log: false });
-    nexo.connect(nexoInstance); // Sin await para no bloquear
+    await nexo.connect(nexoInstance); // AHORA SÍ va con await porque está empaquetado
     nexo.iAmReady(nexoInstance); // Le avisa a Tienda Nube que ya estamos vivos
   } catch (nexoErr) {
     console.warn('[Nexo] Error al conectar o ejecutando fuera de Tienda Nube:', nexoErr);
