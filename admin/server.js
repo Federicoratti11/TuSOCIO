@@ -305,14 +305,52 @@ app.get('/api/last-webhook', (req, res) => {
  */
 app.post('/api/discount-callback', (req, res) => {
   console.log(`\n\n[Discount API] NUEVO EVENTO RECIBIDO`);
-  console.log(`[Discount API] Headers:`, JSON.stringify(req.headers, null, 2));
-  console.log(`[Discount API] Body:`, JSON.stringify(req.body, null, 2));
   
-  lastWebhookPayload = req.body;
+  const cart = req.body;
+  lastWebhookPayload = cart;
   
-  // Por el momento, respondemos 200 OK vacío o sin descuentos para que el checkout no falle
-  // mientras descubrimos el formato exacto de Tienda Nube para aplicar la lógica del "2do al 50%"
-  res.status(200).json([]);
+  if (!cart || !cart.items || !Array.isArray(cart.items) || cart.items.length === 0) {
+    return res.status(200).json({ discounts: [] });
+  }
+
+  try {
+    // Desglosar los productos según su cantidad
+    const allItems = [];
+    for (const item of cart.items) {
+      const qty = parseInt(item.quantity || 1, 10);
+      const price = parseFloat(item.price || item.unit_price || 0); // Manejo de variaciones de la API
+      for (let i = 0; i < qty; i++) {
+        allItems.push({ ...item, price });
+      }
+    }
+
+    if (allItems.length >= 2) {
+      // Ordenar por precio ascendente para descontar el más barato
+      allItems.sort((a, b) => a.price - b.price);
+      const cheapestPrice = allItems[0].price;
+      const discountAmount = cheapestPrice * 0.5; // 50% del más barato
+
+      console.log(`[Discount API] Aplicando descuento de $${discountAmount} al carrito.`);
+
+      return res.status(200).json({
+        discounts: [
+          {
+            id: "muff-promo-2do-50",
+            name: "2do al 50% (Muff)",
+            amount: discountAmount,
+            type: "fixed" // o "percentage"
+          }
+        ]
+      });
+    }
+
+    // Si no hay 2 productos, no aplicamos nada
+    return res.status(200).json({ discounts: [] });
+
+  } catch (err) {
+    console.error("[Discount API] Error calculando el descuento:", err);
+    return res.status(200).json({ discounts: [] }); // Devolver array vacío en caso de error para no romper el checkout
+  }
 });
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
