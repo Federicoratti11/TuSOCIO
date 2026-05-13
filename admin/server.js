@@ -115,7 +115,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ✅ El bundle JS vive en admin/public/dist/ y se sirve automáticamente
 // como /dist/muff-app.iife.js por el middleware de arriba
 
-  // ── Seguridad ────────────────────────────────────────────────────────
+// ── Seguridad ────────────────────────────────────────────────────────
+app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
     "frame-ancestors 'self' https://*.tiendanube.com https://*.nuvemshop.com.br; " +
@@ -125,6 +126,7 @@ app.use(express.static(path.join(__dirname, 'public')));
   );
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
+});
 
 // ─── API: Puente NubeSDK → Backend ───────────────────────────────────────────
 
