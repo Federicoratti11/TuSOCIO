@@ -295,6 +295,144 @@
 
   </div><!-- /page-wrapper -->
 
-  <script src="/dist/dashboard.js"></script>
+  <!-- Cargar Nexo de forma global, libre de empaquetadores y dependencias -->
+  <script src="https://unpkg.com/@tiendanube/nexo@1.3.1/dist/index.js"></script>
+  
+  <script>
+    // ── Estado ────────────────────────────────────────────────────────────
+    let storeId = '';
+    let currentSettings = { promoActive: false, promoPercentage: 0.5 };
+    let nexoInstance = null;
+
+    // ── Helpers ───────────────────────────────────────────────────────────
+    function showAlert(message, type) {
+      const el = document.getElementById('save-alert');
+      if (!el) return;
+      el.textContent  = message;
+      el.className    = `alert ${type} show`;
+      setTimeout(() => { el.className = 'alert'; }, 4000);
+    }
+
+    function updatePreview() {
+      const rangeEl = document.getElementById('discount-range');
+      const subtitle = document.getElementById('preview-subtitle');
+      if (rangeEl && subtitle) {
+        subtitle.textContent = `Agregá 2 artículos y ahorrá ${rangeEl.value}% en el más barato.`;
+      }
+    }
+
+    // ── Carga inicial: obtener store_id del servidor, luego settings ──────
+    async function loadSettings() {
+      // 1. Inicializar Nexo global
+      try {
+        const clientId = '31472';
+        // En el UMD de Tienda Nube, el objeto global suele estar en window["@tiendanube/nexo"].default o window["@tiendanube/nexo"]
+        const nexoGlobal = window["@tiendanube/nexo"]?.default || window["@tiendanube/nexo"];
+        
+        if (nexoGlobal) {
+          nexoInstance = nexoGlobal.create({ clientId: clientId, log: true });
+          await nexoGlobal.connect(nexoInstance); // Esperar rigurosamente el handshake
+          nexoGlobal.iAmReady(nexoInstance); // Avisar que todo está en orden
+        } else {
+          console.warn('[Nexo] El objeto global de Tienda Nube no está disponible.');
+        }
+      } catch (nexoErr) {
+        console.warn('[Nexo] Error al inicializar:', nexoErr);
+      }
+
+      try {
+        const meRes = await fetch('/api/me');
+        if (!meRes.ok) {
+          const badge = document.getElementById('app-status-badge');
+          if (badge) {
+            badge.className = 'status-badge inactive';
+            badge.innerHTML = '<span class="status-dot"></span>ERROR DE SESIÓN';
+          }
+          showAlert('El navegador bloqueó las cookies o la sesión expiró. Abrí la app en una nueva pestaña.', 'error');
+          return;
+        }
+        
+        const me = await meRes.json();
+        storeId = me.store_id;
+
+        const badge = document.getElementById('app-status-badge');
+        if (badge) {
+          badge.innerHTML = `<span class="status-dot"></span>CONECTADA · Tienda ${storeId}`;
+        }
+
+        const res = await fetch(`/api/settings?store_id=${storeId}`);
+        if (!res.ok) throw new Error('Error al cargar configuración');
+        const data = await res.json();
+        currentSettings = data;
+
+        const toggle = document.getElementById('promo-toggle');
+        if (toggle) toggle.checked = data.promoActive;
+        
+        const range = document.getElementById('discount-range');
+        const pct = Math.round((data.promoPercentage || 0.5) * 100);
+        if (range) range.value = pct;
+        
+        const display = document.getElementById('discount-display');
+        if (display) display.textContent = `${pct}%`;
+        
+        updatePreview();
+      } catch (err) {
+        console.error('[Dashboard] Error cargando settings:', err);
+        showAlert('❌ Error al cargar la configuración.', 'error');
+      }
+    }
+
+    // ── Guardar settings ──────────────────────────────────────────────────
+    window.saveSettings = async function() {
+      const btn = document.getElementById('save-btn');
+      const toggle = document.getElementById('promo-toggle');
+      const range = document.getElementById('discount-range');
+      
+      if (!btn || !toggle || !range) return;
+
+      const promoActive = toggle.checked;
+      const promoPercentage = parseInt(range.value, 10) / 100;
+
+      btn.disabled = true;
+      btn.textContent = '⏳ Guardando...';
+
+      try {
+        const res = await fetch('/api/settings', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ store_id: storeId, promoActive, promoPercentage }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        currentSettings = data.settings;
+        showAlert('✅ Configuración guardada correctamente.', 'success');
+
+        const badge = document.getElementById('app-status-badge');
+        if (badge) {
+          badge.className = `status-badge ${promoActive ? 'active' : 'inactive'}`;
+          badge.innerHTML = `<span class="status-dot"></span>${promoActive ? 'PROMO ACTIVA' : 'PROMO INACTIVA'}`;
+        }
+      } catch (err) {
+        console.error('[Dashboard] Error guardando settings:', err);
+        showAlert('❌ Error al guardar. Revisá la conexión.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '💾 Guardar Configuración';
+      }
+    };
+
+    // ── Eventos ───────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+      const range = document.getElementById('discount-range');
+      if (range) {
+        range.addEventListener('input', (e) => {
+          const display = document.getElementById('discount-display');
+          if (display) display.textContent = `${e.target.value}%`;
+          updatePreview();
+        });
+      }
+      loadSettings();
+    });
+  </script>
 </body>
 </html>
