@@ -1,0 +1,19 @@
+# Dependencias
+node_modules/
+
+# Build
+dist/
+
+# Variables de entorno (¡NUNCA subir esto a GitHub!)
+.env
+.env.local
+.env.*
+
+# Logs de tunnels y archivos temporales
+*.log
+tunnel_url*.txt
+pinggy.log
+
+# OS
+.DS_Store
+Thumbs.db

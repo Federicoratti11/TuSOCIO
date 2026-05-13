@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Muff Home & Deco — Panel de Promociones</title>
+  <!-- Nimbus Design System de Tienda Nube (CDN oficial) -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/@tiendanube/nimbus-css@latest/dist/nimbus.css"
+  />
+  <style>
+    /* ── Reset base ────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-body, 'Inter', system-ui, sans-serif);
+      background: var(--color-neutral-background, #f5f5f5);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    /* ── Layout ─────────────────────────────────────────────── */
+    .page-wrapper {
+      max-width: 680px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* ── Nimbus Card ─────────────────────────────────────────── */
+    .nimbus-card {
+      background: var(--color-neutral-surface, #ffffff);
+      border: 1px solid var(--color-neutral-interactive, #e0e0e0);
+      border-radius: var(--border-radius-base, 8px);
+      padding: 1.5rem;
+    }
+
+    /* ── Header ──────────────────────────────────────────────── */
+    .app-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .app-logo {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #e2b96f;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+    .app-header-text h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--color-neutral-text-high, #1a1a1a);
+      margin-bottom: 0.25rem;
+    }
+    .app-header-text p {
+      font-size: 0.875rem;
+      color: var(--color-neutral-text-low, #666);
+    }
+
+    /* ── Status Badge ─────────────────────────────────────────── */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .status-badge.active   { background: #dcfce7; color: #166534; }
+    .status-badge.inactive { background: #fee2e2; color: #991b1b; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+    /* ── Toggle Switch ────────────────────────────────────────── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .toggle-label { font-weight: 600; font-size: 0.95rem; color: var(--color-neutral-text-high, #1a1a1a); }
+    .toggle-description { font-size: 0.82rem; color: var(--color-neutral-text-low, #666); margin-top: 0.25rem; }
+
+    .toggle-switch { position: relative; width: 52px; height: 28px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: #d1d5db;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.25s;
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 22px; height: 22px;
+      left: 3px; top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.25s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+    .toggle-switch input:checked + .toggle-slider { background: #00b050; }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(24px); }
+
+    /* ── Range Slider ─────────────────────────────────────────── */
+    .range-group { display: flex; flex-direction: column; gap: 0.5rem; }
+    .range-header { display: flex; justify-content: space-between; align-items: center; }
+    .range-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-primary, #00b050);
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #e5e7eb;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: #00b050;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+
+    /* ── Button ───────────────────────────────────────────────── */
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.75rem 1.5rem;
+      background: #00b050;
+      color: white;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--border-radius-base, 8px);
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn-primary:hover  { background: #009040; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; }
+
+    /* ── Alert ────────────────────────────────────────────────── */
+    .alert {
+      padding: 0.875rem 1rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      display: none;
+    }
+    .alert.success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+    .alert.error   { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .alert.show    { display: block; }
+
+    /* ── Preview Card ─────────────────────────────────────────── */
+    .promo-preview {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+      border-radius: 12px;
+      padding: 1.25rem;
+      color: #e2b96f;
+    }
+    .promo-preview .preview-label {
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      opacity: 0.7;
+      margin-bottom: 0.5rem;
+    }
+    .promo-preview .preview-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    .promo-preview .preview-subtitle {
+      font-size: 0.85rem;
+      opacity: 0.85;
+    }
+
+    /* ── Divider ──────────────────────────────────────────────── */
+    hr { border: none; border-top: 1px solid var(--color-neutral-interactive, #e5e7eb); }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+
+    <!-- ── Header ──────────────────────────────────────────────────────── -->
+    <div class="nimbus-card">
+      <div class="app-header">
+        <div class="app-logo">🏡</div>
+        <div class="app-header-text">
+          <h1>Muff Home & Deco</h1>
+          <p>Panel de Control de Promociones</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Estado de la App ─────────────────────────────────────────────── -->
+    <div class="nimbus-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+        <div>
+          <div style="font-weight:700; font-size:0.95rem; margin-bottom:0.25rem;">Estado de la App</div>
+          <div style="font-size:0.82rem; color:#666;">Tu script está activo en la tienda.</div>
+        </div>
+        <span class="status-badge active" id="app-status-badge">
+          <span class="status-dot"></span>
+          CONECTADA
+        </span>
+      </div>
+    </div>
+
+    <!-- ── Control de Promoción ─────────────────────────────────────────── -->
+    <div class="nimbus-card" style="display:flex; flex-direction:column; gap:1.25rem;">
+      <div style="font-weight:700; font-size:1.05rem;">Promoción "2do al 50%"</div>
+      <hr />
+
+      <!-- Toggle On/Off -->
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Activar Promoción</div>
+          <div class="toggle-description">
+            Cuando está activa, el descuento aparece automáticamente en el carrito.
+          </div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="promo-toggle" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <hr />
+
+      <!-- Porcentaje de descuento -->
+      <div class="range-group">
+        <div class="range-header">
+          <span style="font-weight:600; font-size:0.95rem;">Porcentaje de descuento</span>
+          <span class="range-value" id="discount-display">50%</span>
+        </div>
+        <input
+          type="range"
+          id="discount-range"
+          min="10"
+          max="70"
+          value="50"
+          step="5"
+        />
+        <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#9ca3af;">
+          <span>10%</span>
+          <span>70%</span>
+        </div>
+      </div>
+
+      <hr />
+
+      <!-- Vista previa del mensaje en tienda -->
+      <div style="font-weight:600; font-size:0.875rem; color:#666; margin-bottom:0.5rem;">
+        Vista Previa del Mensaje en Tienda
+      </div>
+      <div class="promo-preview" id="promo-preview">
+        <div class="preview-label">PROMO MUFF · 2do al 50%</div>
+        <div class="preview-title">¡Promo "2do al 50%" activa!</div>
+        <div class="preview-subtitle" id="preview-subtitle">
+          Agregá 2 artículos y ahorrá 50% en el más barato.
+        </div>
+      </div>
+
+      <!-- Alerta feedback -->
+      <div class="alert" id="save-alert" role="alert"></div>
+
+      <!-- Guardar -->
+      <button class="btn-primary" id="save-btn" onclick="saveSettings()">
+        💾 Guardar Configuración
+      </button>
+    </div>
+
+  </div><!-- /page-wrapper -->
+
+  <script>
+    // ── Estado ────────────────────────────────────────────────────────────
+    let storeId = '';
+    let currentSettings = { promoActive: false, promoPercentage: 0.5 };
+
+    // ── Helpers ───────────────────────────────────────────────────────────
+    function showAlert(message, type) {
+      const el = document.getElementById('save-alert');
+      el.textContent  = message;
+      el.className    = `alert ${type} show`;
+      setTimeout(() => { el.className = 'alert'; }, 4000);
+    }
+
+    function updatePreview() {
+      const pct     = document.getElementById('discount-range').value;
+      const subtitle = document.getElementById('preview-subtitle');
+      subtitle.textContent = `Agregá 2 artículos y ahorrá ${pct}% en el más barato.`;
+    }
+
+    // ── Carga inicial: obtener store_id del servidor, luego settings ──────
+    async function loadSettings() {
+      try {
+        // ✅ Obtener store_id desde el servidor (no desde cookie httpOnly)
+        const meRes = await fetch('/api/me');
+        if (!meRes.ok) {
+          document.getElementById('app-status-badge').className = 'status-badge inactive';
+          document.getElementById('app-status-badge').innerHTML =
+            '<span class="status-dot"></span>NO INSTALADA';
+          console.warn('[Dashboard] App no instalada o sesión expirada.');
+          return;
+        }
+        const me = await meRes.json();
+        storeId = me.store_id;
+
+        // Actualizar badge con store_id
+        document.getElementById('app-status-badge').innerHTML =
+          `<span class="status-dot"></span>CONECTADA · Tienda ${storeId}`;
+
+        // Cargar configuración de la tienda
+        const res = await fetch(`/api/settings?store_id=${storeId}`);
+        if (!res.ok) throw new Error('Error al cargar configuración');
+        const data = await res.json();
+        currentSettings = data;
+
+        document.getElementById('promo-toggle').checked = data.promoActive;
+        const pct = Math.round((data.promoPercentage ?? 0.5) * 100);
+        document.getElementById('discount-range').value = pct;
+        document.getElementById('discount-display').textContent = `${pct}%`;
+        updatePreview();
+      } catch (err) {
+        console.error('[Dashboard] Error cargando settings:', err);
+        showAlert('❌ Error al cargar la configuración. Revisá la conexión.', 'error');
+      }
+    }
+
+    // ── Guardar settings ──────────────────────────────────────────────────
+    async function saveSettings() {
+      const btn        = document.getElementById('save-btn');
+      const promoActive = document.getElementById('promo-toggle').checked;
+      const rangeVal   = document.getElementById('discount-range').value;
+      const promoPercentage = parseInt(rangeVal, 10) / 100;
+
+      btn.disabled    = true;
+      btn.textContent = '⏳ Guardando...';
+
+      try {
+        const res = await fetch('/api/settings', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ store_id: storeId, promoActive, promoPercentage }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        currentSettings = data.settings;
+        showAlert('✅ Configuración guardada correctamente.', 'success');
+
+        // Actualizar badge
+        const badge = document.getElementById('app-status-badge');
+        badge.className = `status-badge ${promoActive ? 'active' : 'inactive'}`;
+        badge.innerHTML = `<span class="status-dot"></span>${promoActive ? 'PROMO ACTIVA' : 'PROMO INACTIVA'}`;
+      } catch (err) {
+        console.error('[Dashboard] Error guardando settings:', err);
+        showAlert('❌ Error al guardar. Revisá la conexión.', 'error');
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = '💾 Guardar Configuración';
+      }
+    }
+
+    // ── Eventos ───────────────────────────────────────────────────────────
+    document.getElementById('discount-range').addEventListener('input', (e) => {
+      document.getElementById('discount-display').textContent = `${e.target.value}%`;
+      updatePreview();
+    });
+
+    // ── Inicializar ───────────────────────────────────────────────────────
+    loadSettings();
+  </script>
+</body>
+</html>
