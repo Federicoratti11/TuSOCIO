@@ -263,6 +263,16 @@ app.get('/auth/callback', async (req, res) => {
 
 // ─── Discount API Webhook ─────────────────────────────────────────────────────
 
+let lastWebhookPayload = null;
+
+/**
+ * GET /api/last-webhook
+ * Endpoint temporal para inspeccionar el payload enviado por Tienda Nube.
+ */
+app.get('/api/last-webhook', (req, res) => {
+  res.json({ payload: lastWebhookPayload });
+});
+
 /**
  * POST /api/discount-callback
  * Endpoint llamado por Tienda Nube cada vez que se actualiza el carrito.
@@ -271,6 +281,8 @@ app.post('/api/discount-callback', (req, res) => {
   console.log(`\n\n[Discount API] NUEVO EVENTO RECIBIDO`);
   console.log(`[Discount API] Headers:`, JSON.stringify(req.headers, null, 2));
   console.log(`[Discount API] Body:`, JSON.stringify(req.body, null, 2));
+  
+  lastWebhookPayload = req.body;
   
   // Por el momento, respondemos 200 OK vacío o sin descuentos para que el checkout no falle
   // mientras descubrimos el formato exacto de Tienda Nube para aplicar la lógica del "2do al 50%"
