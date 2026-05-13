@@ -24,19 +24,9 @@
   "devDependencies": {
     "vite": "^6.4.2",
     "vite-plugin-top-level-await": "^1.6.0"
-  }
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
-  "dependencies": {
-    "@tiendanube/nube-sdk-jsx": "^0.16.1",
-    "@tiendanube/nube-sdk-ui": "^0.17.1",
-    "esbuild": "^0.28.0",
-    "typescript": "^6.0.3"
-  },
-  "devDependencies": {
-    "vite": "^6.4.2",
-    "vite-plugin-top-level-await": "^1.6.0"
-  }
+  "type": "commonjs"
 }
