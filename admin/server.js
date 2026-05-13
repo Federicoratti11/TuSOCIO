@@ -221,9 +221,9 @@ app.get('/auth/callback', async (req, res) => {
       console.error('[OAuth] Error inyectando script:', injectError.response?.data ?? injectError.message);
     }
 
-    // Cookie httpOnly para el dashboard
-    res.cookie('access_token', access_token, { httpOnly: true });
-    res.cookie('store_id',     storeId,       { httpOnly: true });
+    // Cookie httpOnly para el dashboard (SameSite=None y Secure requeridos para iframes)
+    res.cookie('access_token', access_token, { httpOnly: true, sameSite: 'none', secure: true });
+    res.cookie('store_id',     storeId,       { httpOnly: true, sameSite: 'none', secure: true });
     res.redirect('/');
 
   } catch (error) {
