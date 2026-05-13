@@ -327,7 +327,7 @@
       try {
         const clientId = '31472';
         // En el UMD de Tienda Nube, el objeto global suele estar en window["@tiendanube/nexo"].default o window["@tiendanube/nexo"]
-        const nexoGlobal = window["@tiendanube/nexo"]?.default || window["@tiendanube/nexo"];
+        const nexoGlobal = window.nexo; // SDK global expuesto por CDN
         
         if (nexoGlobal) {
           nexoInstance = nexoGlobal.create({ clientId: clientId, log: true });
