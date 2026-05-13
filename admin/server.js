@@ -1,44 +1,119 @@
 require('dotenv').config();
-const express = require('express');
-const axios   = require('axios');
-const path    = require('path');
+const express      = require('express');
+const axios        = require('axios');
+const path         = require('path');
+const fs           = require('fs');
 const cookieParser = require('cookie-parser');
-const cors    = require('cors');
+const cors         = require('cors');
+const initSqlJs    = require('sql.js');
 
-const app  = express();
-const PORT = process.env.PORT || 3000;
+const app     = express();
+const PORT    = process.env.PORT || 3000;
 const APP_URL = process.env.APP_URL || `http://localhost:${PORT}`;
+const DB_PATH = path.join(__dirname, 'muff.db');
 
-// ─── Persistencia en Memoria por store_id ─────────────────────────────────────
-// ⚠️ Para producción real: reemplazar por SQLite/PostgreSQL.
-// Suficiente para homologación de Tienda Nube.
-const storeSettings = new Map();
+// ─── Base de datos SQLite ─────────────────────────────────────────────────────
+
+let db; // instancia de la DB
 
 /**
- * Configuración por defecto para nuevas tiendas instaladas.
+ * Inicializa SQLite y crea la tabla si no existe.
+ * Carga el archivo muff.db del disco si ya existe (persistencia).
  */
-function defaultSettings() {
-  return {
-    promoActive:     false,  // ✅ Inicia desactivada — el comerciante la activa desde el dashboard
-    promoType:       "2do_al_50",
-    promoPercentage: 0.5,
-  };
+async function initDB() {
+  const SQL = await initSqlJs();
+
+  if (fs.existsSync(DB_PATH)) {
+    // Cargar DB existente desde el archivo
+    const fileBuffer = fs.readFileSync(DB_PATH);
+    db = new SQL.Database(fileBuffer);
+    console.log('[DB] Base de datos cargada desde', DB_PATH);
+  } else {
+    // Crear nueva DB
+    db = new SQL.Database();
+    console.log('[DB] Nueva base de datos creada en', DB_PATH);
+  }
+
+  // Crear tabla si no existe
+  db.run(`
+    CREATE TABLE IF NOT EXISTS store_settings (
+      store_id        TEXT PRIMARY KEY,
+      promo_active    INTEGER NOT NULL DEFAULT 0,
+      promo_type      TEXT    NOT NULL DEFAULT '2do_al_50',
+      promo_percentage REAL   NOT NULL DEFAULT 0.5,
+      access_token    TEXT,
+      updated_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+
+  saveDB();
+  console.log('[DB] Tabla inicializada correctamente.');
+}
+
+/**
+ * Persiste la DB en disco después de cada escritura.
+ */
+function saveDB() {
+  const data = db.export();
+  fs.writeFileSync(DB_PATH, Buffer.from(data));
+}
+
+// ─── Helpers DB ───────────────────────────────────────────────────────────────
+
+function getSettings(storeId) {
+  const stmt = db.prepare(
+    'SELECT promo_active, promo_type, promo_percentage FROM store_settings WHERE store_id = ?'
+  );
+  stmt.bind([storeId]);
+  if (stmt.step()) {
+    const row = stmt.getAsObject();
+    stmt.free();
+    return {
+      promoActive:     Boolean(row.promo_active),
+      promoType:       row.promo_type,
+      promoPercentage: row.promo_percentage,
+    };
+  }
+  stmt.free();
+  // Devolver valores por defecto si la tienda no existe aún
+  return { promoActive: false, promoType: '2do_al_50', promoPercentage: 0.5 };
+}
+
+function upsertSettings(storeId, promoActive, promoType, promoPercentage) {
+  db.run(
+    `INSERT INTO store_settings (store_id, promo_active, promo_type, promo_percentage, updated_at)
+     VALUES (?, ?, ?, ?, datetime('now'))
+     ON CONFLICT(store_id) DO UPDATE SET
+       promo_active     = excluded.promo_active,
+       promo_type       = excluded.promo_type,
+       promo_percentage = excluded.promo_percentage,
+       updated_at       = excluded.updated_at`,
+    [storeId, promoActive ? 1 : 0, promoType, promoPercentage]
+  );
+  saveDB();
+}
+
+function upsertToken(storeId, accessToken) {
+  db.run(
+    `INSERT INTO store_settings (store_id, access_token, updated_at)
+     VALUES (?, ?, datetime('now'))
+     ON CONFLICT(store_id) DO UPDATE SET
+       access_token = excluded.access_token,
+       updated_at   = excluded.updated_at`,
+    [storeId, accessToken]
+  );
+  saveDB();
 }
 
 // ─── Middlewares ──────────────────────────────────────────────────────────────
 
-// ✅ CORS habilitado para que el script de la tienda pueda leer /api/settings
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-
-// Servir dashboard de administración
 app.use(express.static(path.join(__dirname, 'public')));
-// Servir el bundle compilado del script de la tienda
 app.use('/dist', express.static(path.join(__dirname, '../dist')));
 
-// Logger de peticiones
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
@@ -52,55 +127,59 @@ app.use((req, res, next) => {
  */
 app.get('/api/settings', (req, res) => {
   const { store_id } = req.query;
-  if (!store_id) {
-    return res.status(400).json({ error: 'store_id es requerido' });
-  }
+  if (!store_id) return res.status(400).json({ error: 'store_id es requerido' });
 
-  const settings = storeSettings.get(String(store_id)) ?? defaultSettings();
-  console.log(`[Settings] store_id=${store_id} →`, settings);
+  const settings = getSettings(String(store_id));
+  console.log(`[Settings] GET store_id=${store_id} →`, settings);
   res.json(settings);
 });
 
 /**
  * POST /api/settings
  * El dashboard actualiza la configuración de la promo.
- * Body: { store_id, promoActive, promoPercentage }
  */
 app.post('/api/settings', (req, res) => {
   const { store_id, promoActive, promoPercentage } = req.body;
-  if (!store_id) {
-    return res.status(400).json({ error: 'store_id es requerido' });
-  }
+  if (!store_id) return res.status(400).json({ error: 'store_id es requerido' });
 
-  const current = storeSettings.get(String(store_id)) ?? defaultSettings();
-  const updated = {
-    ...current,
-    promoActive:     Boolean(promoActive),
-    promoPercentage: parseFloat(promoPercentage) || current.promoPercentage,
-  };
-  storeSettings.set(String(store_id), updated);
+  const pct = parseFloat(promoPercentage);
+  upsertSettings(
+    String(store_id),
+    Boolean(promoActive),
+    '2do_al_50',
+    isNaN(pct) ? 0.5 : pct
+  );
 
-  console.log(`[Settings] Actualizado store_id=${store_id} →`, updated);
+  const updated = getSettings(String(store_id));
+  console.log(`[Settings] POST store_id=${store_id} →`, updated);
   res.json({ success: true, settings: updated });
+});
+
+/**
+ * GET /api/me
+ * El dashboard JS obtiene el store_id del servidor (la cookie es httpOnly).
+ */
+app.get('/api/me', (req, res) => {
+  const storeId = req.cookies?.store_id;
+  if (!storeId) {
+    return res.status(401).json({ error: 'No autenticado. Instalá la app primero.' });
+  }
+  res.json({ store_id: storeId });
 });
 
 // ─── OAuth: Flujo de Instalación ─────────────────────────────────────────────
 
 /**
- * GET /auth/callback?code=XXX&store_id=YYY
+ * GET /auth/callback?code=XXX
  * Tienda Nube redirige aquí tras la autorización del comerciante.
  */
 app.get('/auth/callback', async (req, res) => {
   const { code } = req.query;
-
-  if (!code) {
-    return res.status(400).send('Falta el código de autorización.');
-  }
+  if (!code) return res.status(400).send('Falta el código de autorización.');
 
   try {
-    console.log(`[OAuth] Canjeando código de autorización...`);
+    console.log('[OAuth] Canjeando código de autorización...');
 
-    // ✅ Intercambio del código por access_token
     const tokenResponse = await axios.post(
       'https://www.tiendanube.com/apps/authorize/token',
       {
@@ -119,40 +198,33 @@ app.get('/auth/callback', async (req, res) => {
     const storeId = String(user_id);
     console.log(`[OAuth] Token recibido para tienda: ${storeId}`);
 
-    // ✅ Persistir configuración inicial para esta tienda
-    if (!storeSettings.has(storeId)) {
-      storeSettings.set(storeId, defaultSettings());
-    }
+    // ✅ Persistir token y settings por defecto en SQLite
+    upsertToken(storeId, access_token);
 
-    // ✅ Inyectar el script automáticamente via API de Tienda Nube
+    // ✅ Inyectar el script en la tienda via API de Tienda Nube
     const scriptUrl = `${APP_URL}/dist/muff-app.iife.js`;
     try {
       await axios.post(
         `https://api.tiendanube.com/v1/${storeId}/scripts`,
-        {
-          src:   scriptUrl,
-          event: "onload",
-          where: "store",
-        },
+        { src: scriptUrl, event: 'onload', where: 'store' },
         {
           headers: {
             'Authentication': `bearer ${access_token}`,
-            'User-Agent':      'MuffApp (contacto@muff.com.ar)',
-            'Content-Type':    'application/json',
+            'User-Agent':     'MuffApp (contacto@muff.com.ar)',
+            'Content-Type':   'application/json',
           },
         }
       );
       console.log(`[OAuth] Script inyectado en tienda ${storeId}`);
     } catch (injectError) {
-      // No bloqueamos la instalación si falla la inyección
       console.error('[OAuth] Error inyectando script:', injectError.response?.data ?? injectError.message);
     }
 
-    // Persistir el token en cookie (para el dashboard — en prod usar DB)
+    // Cookie httpOnly para el dashboard
     res.cookie('access_token', access_token, { httpOnly: true });
     res.cookie('store_id',     storeId,       { httpOnly: true });
-
     res.redirect('/');
+
   } catch (error) {
     console.error('[OAuth] Error en instalación:', error.response?.data ?? error.message);
     res.status(500).send('Error durante la instalación. Revisá la terminal del servidor.');
@@ -160,18 +232,6 @@ app.get('/auth/callback', async (req, res) => {
 });
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
-
-/**
- * GET /api/me
- * El dashboard JS consulta esto para obtener el store_id sin tocar cookies httpOnly.
- */
-app.get('/api/me', (req, res) => {
-  const storeId = req.cookies?.store_id;
-  if (!storeId) {
-    return res.status(401).json({ error: 'No autenticado. Instala la app primero.' });
-  }
-  res.json({ store_id: storeId });
-});
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -182,12 +242,17 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada' });
 });
 
-
 // ─── Start ────────────────────────────────────────────────────────────────────
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Servidor Muff corriendo en puerto ${PORT}`);
-  console.log(`📋 Dashboard:       ${APP_URL}/`);
-  console.log(`🔐 OAuth Callback:  ${APP_URL}/auth/callback`);
-  console.log(`⚙️  API Settings:   ${APP_URL}/api/settings`);
+initDB().then(() => {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Servidor Muff corriendo en puerto ${PORT}`);
+    console.log(`📋 Dashboard:      ${APP_URL}/`);
+    console.log(`🔐 OAuth Callback: ${APP_URL}/auth/callback`);
+    console.log(`⚙️  API Settings:  ${APP_URL}/api/settings`);
+    console.log(`🗄️  DB:            ${DB_PATH}`);
+  });
+}).catch((err) => {
+  console.error('❌ Error inicializando la base de datos:', err);
+  process.exit(1);
 });

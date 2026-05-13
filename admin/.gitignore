@@ -4,3 +4,4 @@ dist/
 *.log
 tunnel_url*.txt
 pinggy.log
+muff.db
