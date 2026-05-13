@@ -1,8 +1,8 @@
 # Dependencias
 node_modules/
 
-# Build
-dist/
+# Build (incluimos dist/ para que Railway lo sirva sin build step extra)
+# dist/
 
 # Variables de entorno (¡NUNCA subir esto a GitHub!)
 .env
