@@ -313,6 +313,51 @@ app.get('/api/last-error', (req, res) => {
 });
 
 /**
+ * GET /api/debug-tiendanube
+ * Consulta a Tienda Nube para ver qué webhooks y promociones están registrados.
+ */
+app.get('/api/debug-tiendanube', async (req, res) => {
+  const { store_id } = req.query;
+  if (!store_id) return res.status(400).json({ error: 'store_id es requerido' });
+
+  const settings = getSettings(String(store_id));
+  if (!settings.accessToken) return res.status(400).json({ error: 'No token' });
+
+  try {
+    const config = {
+      headers: {
+        'Authentication': `bearer ${settings.accessToken}`,
+        'User-Agent': 'MuffApp (contacto@muff.com.ar)'
+      }
+    };
+    
+    let callbacks = null;
+    let promotions = null;
+    let callbackError = null;
+    let promoError = null;
+
+    try {
+      const cbRes = await axios.get(`https://api.tiendanube.com/v1/${store_id}/discounts/callbacks`, config);
+      callbacks = cbRes.data;
+    } catch (e) { callbackError = e.response?.data || e.message; }
+
+    try {
+      const pRes = await axios.get(`https://api.tiendanube.com/v1/${store_id}/promotions`, config);
+      promotions = pRes.data;
+    } catch (e) { promoError = e.response?.data || e.message; }
+
+    res.json({
+      callbacks,
+      callbackError,
+      promotions,
+      promoError
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * POST /api/discount-callback
  * Endpoint llamado por Tienda Nube cada vez que se actualiza el carrito.
  */
