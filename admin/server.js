@@ -118,7 +118,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
-    "frame-ancestors 'self' https://*.tiendanube.com https://*.nuvemshop.com.br;"
+    "frame-ancestors 'self' https://*.tiendanube.com https://*.nuvemshop.com.br; script-src 'self' https://unpkg.com https://*.tiendanube.com https://*.nuvemshop.com.br; connect-src 'self' https://*.tiendanube.com https://*.nuvemshop.com.br;"
   );
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
